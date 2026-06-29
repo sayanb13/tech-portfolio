@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_0ikhw2b" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.45.0" modeler:executionPlatform="Camunda Platform" modeler:executionPlatformVersion="7.24.0">
+  <bpmn:process id="Process_0qe5qcj" isExecutable="true">
+    <bpmn:task id="Activity_0ezhdjm" name="User">
+      <bpmn:incoming>Flow_12vxdzu</bpmn:incoming>
+      <bpmn:outgoing>Flow_00onf5h</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Activity_0ka1vq8" name="API Gateway">
+      <bpmn:incoming>Flow_00onf5h</bpmn:incoming>
+      <bpmn:incoming>Flow_0w767jm</bpmn:incoming>
+      <bpmn:incoming>Flow_1ujbhno</bpmn:incoming>
+      <bpmn:outgoing>Flow_09y1w4a</bpmn:outgoing>
+      <bpmn:outgoing>Flow_12vxdzu</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_00onf5h" name="Sends API request" sourceRef="Activity_0ezhdjm" targetRef="Activity_0ka1vq8" />
+    <bpmn:task id="Activity_0ii8g05" name="Rate Limiter">
+      <bpmn:incoming>Flow_09y1w4a</bpmn:incoming>
+      <bpmn:incoming>Flow_0r8f1ai</bpmn:incoming>
+      <bpmn:outgoing>Flow_0w767jm</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1ujbhno</bpmn:outgoing>
+      <bpmn:outgoing>Flow_10qhlab</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_09y1w4a" name="Pass request for counter validation" sourceRef="Activity_0ka1vq8" targetRef="Activity_0ii8g05" />
+    <bpmn:task id="Activity_1pimcqn" name="Downstream Service">
+      <bpmn:incoming>Flow_0hrz3rf</bpmn:incoming>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_12vxdzu" name="Success / Failure Response to user" sourceRef="Activity_0ka1vq8" targetRef="Activity_0ezhdjm" />
+    <bpmn:sequenceFlow id="Flow_0w767jm" name="Return success response" sourceRef="Activity_0ii8g05" targetRef="Activity_0ka1vq8" />
+    <bpmn:sequenceFlow id="Flow_1ujbhno" name="Reject request for limit exceed with code 429" sourceRef="Activity_0ii8g05" targetRef="Activity_0ka1vq8" />
+    <bpmn:task id="Activity_10jkx8g" name="Redis Sentinel">
+      <bpmn:incoming>Flow_1ezcpdj</bpmn:incoming>
+      <bpmn:outgoing>Flow_1vgsz2e</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_0r8f1ai" sourceRef="Activity_0czqql8" targetRef="Activity_0ii8g05" />
+    <bpmn:sequenceFlow id="Flow_1vgsz2e" sourceRef="Activity_10jkx8g" targetRef="Activity_0czqql8" />
+    <bpmn:sequenceFlow id="Flow_10qhlab" name="If user request under limit" sourceRef="Activity_0ii8g05" targetRef="Activity_0czqql8" />
+    <bpmn:subProcess id="Activity_0czqql8" name="Redis Cache">
+      <bpmn:incoming>Flow_1vgsz2e</bpmn:incoming>
+      <bpmn:incoming>Flow_10qhlab</bpmn:incoming>
+      <bpmn:outgoing>Flow_0r8f1ai</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0hrz3rf</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1ezcpdj</bpmn:outgoing>
+      <bpmn:task id="Activity_0dac56d" name="Previous timeframe user request counter" />
+      <bpmn:task id="Activity_0zo3nsw" name="Current timeframe user request counter" />
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="Flow_0hrz3rf" sourceRef="Activity_0czqql8" targetRef="Activity_1pimcqn" />
+    <bpmn:sequenceFlow id="Flow_1ezcpdj" name="Monitors / Failover" sourceRef="Activity_0czqql8" targetRef="Activity_10jkx8g" />
+    <bpmn:textAnnotation id="TextAnnotation_1b014hu">
+      <bpmn:text>Identify user by IP address (guest) or user ID (logged-in)</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_08iznrj" associationDirection="None" sourceRef="Activity_0ka1vq8" targetRef="TextAnnotation_1b014hu" />
+    <bpmn:textAnnotation id="TextAnnotation_08avekm">
+      <bpmn:text>1) Pull user counter data from Redis
+
+2) Validate if counter exceeds limit or not using Slider Window Counter Algo
+
+3) Allow/Reject based on validation</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_0kj24k0" associationDirection="None" sourceRef="Activity_0ii8g05" targetRef="TextAnnotation_08avekm" />
+    <bpmn:textAnnotation id="TextAnnotation_1ds2h0b">
+      <bpmn:text>Monitor Redis cache health
+
+Works as fault tolerance</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_1g50tsb" associationDirection="None" sourceRef="Activity_10jkx8g" targetRef="TextAnnotation_1ds2h0b" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_0qe5qcj">
+      <bpmndi:BPMNShape id="Activity_0ezhdjm_di" bpmnElement="Activity_0ezhdjm">
+        <dc:Bounds x="170" y="350" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ka1vq8_di" bpmnElement="Activity_0ka1vq8">
+        <dc:Bounds x="450" y="350" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ii8g05_di" bpmnElement="Activity_0ii8g05">
+        <dc:Bounds x="730" y="350" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_10jkx8g_di" bpmnElement="Activity_10jkx8g">
+        <dc:Bounds x="1160" y="160" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1xgowe8" bpmnElement="Activity_1pimcqn">
+        <dc:Bounds x="1530" y="350" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Association_08iznrj_di" bpmnElement="Association_08iznrj">
+        <di:waypoint x="531" y="350" />
+        <di:waypoint x="577" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_0kj24k0_di" bpmnElement="Association_0kj24k0">
+        <di:waypoint x="826" y="428" />
+        <di:waypoint x="902" y="490" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_1g50tsb_di" bpmnElement="Association_1g50tsb">
+        <di:waypoint x="1248" y="160" />
+        <di:waypoint x="1280" y="127" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Activity_0gk75xx_di" bpmnElement="Activity_0czqql8" isExpanded="true">
+        <dc:Bounds x="1030" y="290" width="360" height="200" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1btr87j" bpmnElement="Activity_0zo3nsw">
+        <dc:Bounds x="1236" y="360" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1sxosmf" bpmnElement="Activity_0dac56d">
+        <dc:Bounds x="1080" y="360" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1b014hu_di" bpmnElement="TextAnnotation_1b014hu">
+        <dc:Bounds x="570" y="220" width="100" height="70" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_12vxdzu_di" bpmnElement="Flow_12vxdzu">
+        <di:waypoint x="450" y="390" />
+        <di:waypoint x="270" y="390" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="316" y="403" width="88" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_00onf5h_di" bpmnElement="Flow_00onf5h">
+        <di:waypoint x="270" y="390" />
+        <di:waypoint x="450" y="390" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="334" y="356" width="52" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0w767jm_di" bpmnElement="Flow_0w767jm">
+        <di:waypoint x="730" y="390" />
+        <di:waypoint x="550" y="390" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="602" y="396" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ujbhno_di" bpmnElement="Flow_1ujbhno">
+        <di:waypoint x="780" y="430" />
+        <di:waypoint x="780" y="470" />
+        <di:waypoint x="530" y="470" />
+        <di:waypoint x="530" y="430" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="597" y="480" width="88" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_09y1w4a_di" bpmnElement="Flow_09y1w4a">
+        <di:waypoint x="550" y="390" />
+        <di:waypoint x="730" y="390" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="597" y="356" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0r8f1ai_di" bpmnElement="Flow_0r8f1ai">
+        <di:waypoint x="1030" y="390" />
+        <di:waypoint x="830" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10qhlab_di" bpmnElement="Flow_10qhlab">
+        <di:waypoint x="830" y="390" />
+        <di:waypoint x="1030" y="390" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="894" y="356" width="71" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1vgsz2e_di" bpmnElement="Flow_1vgsz2e">
+        <di:waypoint x="1210" y="240" />
+        <di:waypoint x="1210" y="290" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="TextAnnotation_08avekm_di" bpmnElement="TextAnnotation_08avekm">
+        <dc:Bounds x="870" y="490" width="160" height="156" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_1ds2h0b_di" bpmnElement="TextAnnotation_1ds2h0b">
+        <dc:Bounds x="1280" y="60" width="100" height="84" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0hrz3rf_di" bpmnElement="Flow_0hrz3rf">
+        <di:waypoint x="1390" y="390" />
+        <di:waypoint x="1530" y="390" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ezcpdj_di" bpmnElement="Flow_1ezcpdj">
+        <di:waypoint x="1210" y="290" />
+        <di:waypoint x="1210" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1225" y="256" width="49" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
